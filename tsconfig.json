@@ -16,6 +16,7 @@
     "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,

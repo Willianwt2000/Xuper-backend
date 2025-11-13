@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "Xuper Backend",
+    "_postman_id": "3f6a4f90-2e67-4f9e-9dc3-7b8cf0f7422f",
+    "description": "Colección para probar los endpoints actuales del backend de Xuper. Ajusta `{{baseUrl}}` si cambias el puerto en tu `.env`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Healthcheck",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/xuper/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "xuper",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Solicitar código de verificación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"usuario@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/xuper/verify-email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "xuper",
+            "verify-email"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registrar usuario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Usuario de prueba\",\n  \"email\": \"usuario@example.com\",\n  \"password\": \"ClaveSegura123\",\n  \"verificationCode\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/xuper/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "xuper",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Iniciar sesión",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"usuario@example.com\",\n  \"password\": \"ClaveSegura123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/xuper/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "xuper",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Listar usuarios",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/xuper/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "xuper",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    }
+  ]
+}
+

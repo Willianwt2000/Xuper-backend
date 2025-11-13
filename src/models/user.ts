@@ -1,33 +1,60 @@
-import mongoose from 'mongoose';
-const { Schema } = mongoose;
 import bcrypt from "bcrypt";
+import mongoose, {
+  type CallbackError,
+  type Document,
+  type Model,
+  type Types,
+} from "mongoose";
 
-const userSchema = new Schema({
-  name: {
-    type: String,
-    required: [true, 'El nombre es obligatorio.'],
-    trim: true,
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password: string;
+  verified: boolean;
+  downloads: Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+  matchPassword(enteredPassword: string): Promise<boolean>;
+}
+
+const { Schema } = mongoose;
+
+const userSchema = new Schema<IUser>(
+  {
+    name: {
+      type: String,
+      required: [true, "El nombre es obligatorio."],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "El correo electrónico es obligatorio."],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "La contraseña es obligatoria."],
+    },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+    downloads: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Download",
+      },
+    ],
   },
-
-  email: {
-    type: String,
-    required: [true, 'El correo electrónico es obligatorio.'],
-    unique: true,
-    trim: true,
-    lowercase: true,
+  {
+    timestamps: true,
   },
+);
 
-
-  password: {
-    type: String,
-    required: [true, 'La contraseña es obligatoria.'],
-  },
-});
-
-
-
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     return next();
   }
 
@@ -36,21 +63,18 @@ userSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
-    next(error as mongoose.CallbackError);
+    next(error as CallbackError);
   }
 });
 
-// Puedes añadir un método para comparar contraseñas (para el login)
-interface IUserDocument extends mongoose.Document {
-  password: string;
-  matchPassword(enteredPassword: string): Promise<boolean>;
-}
-
 userSchema.methods.matchPassword = async function (
-  this: IUserDocument,
-  enteredPassword: string
+  enteredPassword: string,
 ): Promise<boolean> {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
-export const User = mongoose.model('User', userSchema);
+const User: Model<IUser> =
+  mongoose.models.User ?? mongoose.model<IUser>("User", userSchema);
+
+export { User };
+export default User;
