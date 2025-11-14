@@ -6,15 +6,22 @@ import mongoose, {
   type Types,
 } from "mongoose";
 
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin'
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  role: UserRole;
   verified: boolean;
   downloads: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
+  isAdmin(): boolean;
 }
 
 const { Schema } = mongoose;
@@ -40,6 +47,11 @@ const userSchema = new Schema<IUser>(
     verified: {
       type: Boolean,
       default: false,
+    },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.USER,
     },
     downloads: [
       {
@@ -73,8 +85,11 @@ userSchema.methods.matchPassword = async function (
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-const User: Model<IUser> =
-  mongoose.models.User ?? mongoose.model<IUser>("User", userSchema);
+const User: Model<IUser> = mongoose.models.User ?? mongoose.model<IUser>("User", userSchema);
+
+User.schema.methods.isAdmin = function (): boolean {
+  return this.role === UserRole.ADMIN;
+};
 
 export { User };
 export default User;

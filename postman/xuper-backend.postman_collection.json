@@ -1,137 +1,350 @@
 {
   "info": {
-    "name": "Xuper Backend",
-    "_postman_id": "3f6a4f90-2e67-4f9e-9dc3-7b8cf0f7422f",
-    "description": "Colección para probar los endpoints actuales del backend de Xuper. Ajusta `{{baseUrl}}` si cambias el puerto en tu `.env`.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Xuper Backend API",
+    "description": "Colección completa para probar todos los endpoints del backend de Xuper. Incluye autenticación, registro de usuarios, verificación de email y gestión de administradores.\n\n**Configuración inicial:**\n1. Configura la variable `baseUrl` en el entorno (por defecto: `http://localhost:5000`)\n2. El token JWT se guarda automáticamente después del login en la variable `authToken`\n3. Para registrar un administrador, necesitas el código especial configurado en `ADMIN_REGISTRATION_CODE`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "xuper-backend-api-v1"
   },
   "item": [
     {
-      "name": "Healthcheck",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/xuper/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "xuper",
-            ""
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Solicitar código de verificación",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"usuario@example.com\"\n}"
+      "name": "1. Autenticación",
+      "item": [
+        {
+          "name": "Healthcheck",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/xuper/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Verifica que el servidor esté funcionando correctamente."
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/xuper/verify-email",
-          "host": [
-            "{{baseUrl}}"
+        {
+          "name": "Solicitar código de verificación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "xuper",
-            "verify-email"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Registrar usuario",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Usuario de prueba\",\n  \"email\": \"usuario@example.com\",\n  \"password\": \"ClaveSegura123\",\n  \"verificationCode\": \"123456\"\n}"
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tu-correo@ejemplo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xuper/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "verify-email"]
+            },
+            "description": "Solicita un código de verificación de 6 dígitos que se enviará al correo electrónico proporcionado.\n\n**Flujo:**\n1. El sistema genera un código aleatorio de 6 dígitos\n2. Se hashea con SHA-256 y se guarda en la base de datos\n3. Se envía el código original por email (válido por 15 minutos)\n4. El usuario debe usar este código para completar el registro\n\n**Notas:**\n- El código expira después de 15 minutos\n- Solo se puede solicitar un código por email a la vez\n- Si el email ya está registrado, se devuelve un error"
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/xuper/register",
-          "host": [
-            "{{baseUrl}}"
+        {
+          "name": "Registrar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains user data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('_id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "xuper",
-            "register"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Iniciar sesión",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"usuario@example.com\",\n  \"password\": \"ClaveSegura123\"\n}"
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Pérez\",\n  \"email\": \"tu-correo@ejemplo.com\",\n  \"password\": \"ContraseñaSegura123\",\n  \"verificationCode\": \"123456\",\n  \"adminCode\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xuper/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "register"]
+            },
+            "description": "Registra un nuevo usuario en el sistema.\n\n**Requisitos:**\n- Debe haber solicitado previamente un código de verificación\n- El código debe ser válido y no haber expirado (15 minutos)\n- El email no debe estar ya registrado\n\n**Campos requeridos:**\n- `name`: Nombre del usuario (2-50 caracteres)\n- `email`: Correo electrónico válido\n- `password`: Contraseña (mínimo 6 caracteres, sin espacios)\n- `verificationCode`: Código de 6 dígitos recibido por email\n\n**Campo opcional:**\n- `adminCode`: Si se proporciona el código correcto, el usuario se registra como administrador\n\n**Respuesta exitosa:**\n- Devuelve los datos del usuario creado (sin la contraseña)\n- El usuario queda marcado como verificado automáticamente"
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/xuper/login",
-          "host": [
-            "{{baseUrl}}"
+        {
+          "name": "Registrar administrador (con código especial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"User is admin\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.role).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "xuper",
-            "login"
-          ]
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Usuario\",\n  \"email\": \"admin@ejemplo.com\",\n  \"password\": \"AdminPass123\",\n  \"verificationCode\": \"123456\",\n  \"adminCode\": \"TU_CODIGO_ADMIN_AQUI\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xuper/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "register"]
+            },
+            "description": "Registra un nuevo usuario con rol de administrador usando el código especial.\n\n**Nota:** Este endpoint es el mismo que `/xuper/register`, pero incluyendo el campo `adminCode` con el valor correcto configurado en `ADMIN_REGISTRATION_CODE` en el servidor.\n\n**Importante:**\n- Primero debes solicitar un código de verificación para el email\n- Luego usa ese código junto con el `adminCode` para registrarte como administrador"
+          },
+          "response": []
+        },
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    ",
+                  "    // Guardar el token en la variable de entorno",
+                  "    if (jsonData.token) {",
+                  "        pm.environment.set('authToken', jsonData.token);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains user data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('_id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tu-correo@ejemplo.com\",\n  \"password\": \"ContraseñaSegura123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xuper/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "login"]
+            },
+            "description": "Inicia sesión con un usuario registrado y verificado.\n\n**Requisitos:**\n- El usuario debe estar registrado\n- El email debe estar verificado\n- La contraseña debe ser correcta\n\n**Respuesta exitosa:**\n- Devuelve los datos del usuario\n- Incluye un token JWT válido por 30 días\n- El token se guarda automáticamente en la variable `authToken` para usar en otras peticiones\n\n**Uso del token:**\n- Incluye el token en el header: `Authorization: Bearer {{authToken}}`"
+          },
+          "response": []
         }
-      },
-      "response": []
+      ],
+      "description": "Endpoints relacionados con autenticación, registro y verificación de usuarios."
     },
     {
-      "name": "Listar usuarios",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/xuper/users",
-          "host": [
-            "{{baseUrl}}"
+      "name": "2. Administración (Requiere autenticación)",
+      "item": [
+        {
+          "name": "Listar todos los usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Users don't have password field\", function () {",
+                  "    var users = pm.response.json();",
+                  "    if (users.length > 0) {",
+                  "        pm.expect(users[0]).to.not.have.property('password');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ],
-          "path": [
-            "xuper",
-            "users"
-          ]
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/xuper/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "users"]
+            },
+            "description": "Obtiene la lista completa de todos los usuarios registrados en el sistema.\n\n**Requisitos:**\n- Autenticación requerida (token JWT)\n- Rol de administrador requerido\n\n**Respuesta:**\n- Array de objetos usuario (sin incluir contraseñas)\n- Incluye: _id, name, email, role, verified, createdAt, updatedAt"
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar nuevo administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"User is admin\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.role).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nuevo Administrador\",\n  \"email\": \"nuevo-admin@ejemplo.com\",\n  \"password\": \"AdminPass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xuper/register/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["xuper", "register", "admin"]
+            },
+            "description": "Crea un nuevo usuario con rol de administrador directamente (sin verificación de email).\n\n**Requisitos:**\n- Autenticación requerida (token JWT)\n- Rol de administrador requerido\n- El email no debe estar ya registrado\n\n**Campos requeridos:**\n- `name`: Nombre del administrador (2-50 caracteres)\n- `email`: Correo electrónico válido\n- `password`: Contraseña (mínimo 6 caracteres, sin espacios)\n\n**Nota:** Este endpoint crea el usuario como verificado automáticamente, sin necesidad de código de verificación."
+          },
+          "response": []
         }
-      },
-      "response": []
+      ],
+      "description": "Endpoints que requieren autenticación y permisos de administrador."
     }
   ],
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000"
+      "value": "http://localhost:5000",
+      "type": "string"
     },
     {
       "key": "authToken",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ]
 }
