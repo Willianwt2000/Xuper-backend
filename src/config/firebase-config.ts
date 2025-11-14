@@ -15,23 +15,59 @@ try {
   const apps = admin.apps ?? [];
   if (apps.length === 0) {
     const serviceAccountJson = serviceAccountRaw as {
+      type?: string;
       project_id?: string;
       client_email?: string;
       private_key?: string;
     };
 
-    const { project_id, client_email, private_key } = serviceAccountJson;
-
-    if (!project_id || !client_email || !private_key) {
+    // Validar que el tipo sea service_account
+    if (serviceAccountJson.type !== "service_account") {
       throw new Error(
-        "Invalid serviceAccount.json: ensure project_id, client_email, and private_key are defined.",
+        "Invalid serviceAccount.json: 'type' must be 'service_account'.",
+      );
+    }
+
+    // Validar que project_id exista y no esté vacío
+    if (!serviceAccountJson.project_id || typeof serviceAccountJson.project_id !== "string" || serviceAccountJson.project_id.trim() === "") {
+      throw new Error(
+        "Invalid serviceAccount.json: 'project_id' is required and must be a non-empty string.",
+      );
+    }
+
+    // Validar que client_email exista, no esté vacío y tenga formato de email válido
+    if (!serviceAccountJson.client_email || typeof serviceAccountJson.client_email !== "string" || serviceAccountJson.client_email.trim() === "") {
+      throw new Error(
+        "Invalid serviceAccount.json: 'client_email' is required and must be a non-empty string.",
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(serviceAccountJson.client_email)) {
+      throw new Error(
+        "Invalid serviceAccount.json: 'client_email' must be a valid email address.",
+      );
+    }
+
+    // Validar que private_key exista, no esté vacío y tenga el formato correcto
+    if (!serviceAccountJson.private_key || typeof serviceAccountJson.private_key !== "string" || serviceAccountJson.private_key.trim() === "") {
+      throw new Error(
+        "Invalid serviceAccount.json: 'private_key' is required and must be a non-empty string.",
+      );
+    }
+
+    // Validar que la private_key tenga el formato PEM correcto
+    const normalizedPrivateKey = serviceAccountJson.private_key.replace(/\\n/g, "\n");
+    if (!normalizedPrivateKey.includes("-----BEGIN PRIVATE KEY-----") || !normalizedPrivateKey.includes("-----END PRIVATE KEY-----")) {
+      throw new Error(
+        "Invalid serviceAccount.json: 'private_key' must be a valid PEM-formatted private key.",
       );
     }
 
     const serviceAccount: ServiceAccount = {
-      projectId: project_id,
-      clientEmail: client_email,
-      privateKey: private_key.replace(/\\n/g, "\n"),
+      projectId: serviceAccountJson.project_id!,
+      clientEmail: serviceAccountJson.client_email!,
+      privateKey: normalizedPrivateKey,
     };
 
     admin.initializeApp({
