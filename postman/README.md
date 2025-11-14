@@ -100,3 +100,4 @@ Si se agregan nuevos endpoints al servidor, puedes:
 - El puerto en `baseUrl` coincida con el del servidor
 - Las variables de entorno estén correctamente configuradas
 
+

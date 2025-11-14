@@ -1,6 +1,15 @@
 import admin from "firebase-admin";
 import type { ServiceAccount } from "firebase-admin";
-import serviceAccountRaw from "./serviceAccount.json" with { type: "json" };
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const serviceAccountRaw = JSON.parse(
+  readFileSync(join(__dirname, "serviceAccount.json"), "utf-8")
+);
 
 try {
   const apps = admin.apps ?? [];
