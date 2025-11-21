@@ -2,14 +2,15 @@ import crypto from "crypto";
 import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import "./config/firebase-config.js";
+import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import EmailVerification from "./models/emailVerification.js";
 import { User } from "./models/user.js";
 import { sendVerificationCodeEmail } from "./services/emailService.js";
 import jwt from 'jsonwebtoken';
 
+connectDB();
 
 
 interface AuthenticatedRequest extends Request {
@@ -396,7 +397,11 @@ if (!PORT) {
   throw new Error("PORT is not defined in environment variables");
 }
 
-app.listen(PORT, () => {
-  connectDB();
-  console.log(`Server is running on port http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port http://localhost:${PORT}`);
+  });
+}
+
+// Exportar la app para que pueda ser importada en el archivo de despliegue
+export default app;

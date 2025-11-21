@@ -21,15 +21,18 @@ const getTransporter = (): nodemailer.Transporter => {
     );
   }
 
+  // Modificación que debes tener aplicada:
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number.parseInt(SMTP_PORT, 10),
     secure: SMTP_SECURE === "true",
+    logger: true,
+    debug: true,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
     },
-  });
+  } as any);
 
   return transporter;
 };
