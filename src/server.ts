@@ -1,17 +1,20 @@
+import dotenv from "dotenv";
+// 1. CARGA DE VARIABLES (CRUCIAL: Debe ser lo primero)
+dotenv.config();
+
 import crypto from "crypto";
 import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
-import "./config/firebase-config.js";
-import dotenv from "dotenv";
+import "./config/firebase-config.js"; // Importar después de dotenv
 import { connectDB } from "./config/db.js";
 import EmailVerification from "./models/emailVerification.js";
 import { User } from "./models/user.js";
 import { sendVerificationCodeEmail } from "./services/emailService.js";
 import jwt from 'jsonwebtoken';
 
+// 2. CONEXIÓN A DB (Para Cold Start en Vercel)
 connectDB();
-
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -25,7 +28,7 @@ interface JwtPayload extends jwt.JwtPayload {
   role?: 'admin' | 'user';
 };
 
-// Middleware para verificar autenticación y adjuntar usuario a la solicitud
+// Middleware para verificar autenticación
 const ensureAuth = async (req: Request, res: Response, next: () => void): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -48,14 +51,12 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
       return;
     }
 
-    // Obtener el usuario para asegurarnos de que existe y obtener su rol real
     const user = await User.findById(decoded.id);
     if (!user) {
       res.status(401).json({ message: 'Usuario no encontrado' });
       return;
     }
 
-    // Adjuntar información del usuario a la solicitud
     (req as AuthenticatedRequest).user = {
       id: decoded.id,
       role: user.role as 'admin' | 'user'
@@ -68,15 +69,12 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
   }
 };
 
-// Middleware para verificar si el usuario es administrador
+// Middleware para verificar admin
 const ensureAdmin = (req: AuthenticatedRequest, res: Response, next: () => void): void => {
-  // 1. Verificar si el usuario está autenticado
   if (!req.user) {
     res.status(401).json({ message: 'Acceso denegado. Se requiere autenticación.' });
     return;
   }
-
-  // 2. Verificar el rol
   if (req.user.role === 'admin') {
     next();
   } else {
@@ -84,9 +82,9 @@ const ensureAdmin = (req: AuthenticatedRequest, res: Response, next: () => void)
   }
 };
 
-dotenv.config();
+// 3. INICIALIZACIÓN DE APP CON TIPO EXPLÍCITO (Fix TS2742)
+const app: express.Application = express();
 
-const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -105,7 +103,6 @@ app.get("/xuper/", (_req, res) => {
 
 app.get('/xuper/users', ensureAuth, ensureAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    // get users from database
     const users = await User.find({}).select('-password');
     res.status(200).json(users);
   } catch (error: unknown) {
@@ -117,7 +114,6 @@ app.get('/xuper/users', ensureAuth, ensureAdmin, async (req: AuthenticatedReques
   }
 });
 
-// Ruta para registrar un nuevo administrador (solo accesible por administradores)
 app.post("/xuper/register/admin", ensureAuth, ensureAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { name, email, password } = req.body;
 
@@ -145,10 +141,8 @@ app.post("/xuper/register/admin", ensureAuth, ensureAdmin, async (req: Authentic
   }
 });
 
-// Código especial para registro de administradores
 const ADMIN_REGISTRATION_CODE = process.env.ADMIN_REGISTRATION_CODE;
 
-// Registrar nuevo usuario o administrador
 app.post("/xuper/register", async (req: Request, res: Response): Promise<void> => {
   const { name, email, password, verificationCode, adminCode } = req.body;
 
@@ -160,7 +154,6 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Verificar si es un intento de registro de administrador
     const isAdminRegistration = adminCode === ADMIN_REGISTRATION_CODE;
 
     if (isAdminRegistration) {
@@ -183,9 +176,7 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
     }
 
     if (password.trim().includes(" ")) {
-      res
-        .status(400)
-        .json({ message: "La contraseña no debe contener espacios." });
+      res.status(400).json({ message: "La contraseña no debe contener espacios." });
       return;
     }
 
@@ -205,8 +196,7 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
 
     if (!verificationEntry) {
       res.status(400).json({
-        message:
-          "No existe un código de verificación para este correo. Solicita uno nuevo.",
+        message: "No existe un código de verificación para este correo. Solicita uno nuevo.",
       });
       return;
     }
@@ -226,7 +216,6 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Configurar el rol según si es un registro de administrador
     const role = isAdminRegistration ? 'admin' as const : 'user' as const;
     const userData = {
       name,
@@ -237,7 +226,6 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
     };
 
     const user = await User.create(userData);
-
     await verificationEntry.deleteOne();
 
     res.status(201).json({
@@ -255,36 +243,28 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
   }
 });
 
-//Login user
 app.post("/xuper/login", async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
   try {
-    //validations
     if (!email || !password) {
-      res
-        .status(400)
-        .json({ message: "Por favor, completa todos los campos obligatorios." });
+      res.status(400).json({ message: "Por favor, completa todos los campos obligatorios." });
       return;
     }
     const user = await User.findOne({ email: normalizeEmail(email) });
 
     if (!user) {
-      res.status(401).json({
-        message: "Correo electrónico o contraseña inválidos.",
-      });
+      res.status(401).json({ message: "Correo electrónico o contraseña inválidos." });
       return;
     }
 
     if (!user.verified) {
       res.status(403).json({
-        message:
-          "Tu correo electrónico no ha sido verificado. Completa la verificación para iniciar sesión.",
+        message: "Tu correo electrónico no ha sido verificado. Completa la verificación para iniciar sesión.",
       });
       return;
     }
 
     if (await user.matchPassword(password)) {
-      // Generar token JWT
       const token = jwt.sign(
         { id: user._id },
         process.env.JWT_SECRET || 'your_jwt_secret',
@@ -294,8 +274,8 @@ app.post("/xuper/login", async (req: Request, res: Response): Promise<void> => {
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict', // Protege contra ataques CSRF
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días en milisegundos (igual que tu token)
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000
       });
 
       res.status(200).json({
@@ -318,7 +298,6 @@ app.post("/xuper/login", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-//verify user email
 app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body;
   try {
@@ -336,34 +315,24 @@ app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<voi
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      res.status(400).json({
-        message: "El correo electrónico ya está registrado.",
-      });
+      res.status(400).json({ message: "El correo electrónico ya está registrado." });
       return;
     }
 
     const verificationCode = crypto.randomInt(100000, 999999).toString();
     const codeHash = hashVerificationCode(verificationCode);
-    const expiresAt = new Date(
-      Date.now() + VERIFICATION_CODE_EXPIRATION_MINUTES * 60 * 1000,
-    );
+    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_MINUTES * 60 * 1000);
 
     await EmailVerification.findOneAndUpdate(
       { email: normalizedEmail },
       { codeHash, expiresAt },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
-      },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
     );
 
     await sendVerificationCodeEmail(normalizedEmail, verificationCode);
 
     res.status(200).json({
-      message:
-        "Se ha enviado un código de verificación al correo electrónico proporcionado.",
+      message: "Se ha enviado un código de verificación al correo electrónico proporcionado.",
     });
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -374,28 +343,20 @@ app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<voi
   }
 });
 
-//Download endpoint
 app.get("/api/xuper/download", ensureAuth, (req: AuthenticatedRequest, res: Response): void => {
   if (!req.user) {
     res.status(401).json({ message: "No autorizado. Debe iniciar sesión." });
     return;
   }
-
   console.log(`Usuario (${req.user.id}) solicitando URLs de descarga.`);
-
   res.status(200).json({
     xptv: "https://files.thexupertv.com/XPTV-6.5.0-thexupertv.com.apk",
     xprtv: "https://files.thexupertv.com/XPR_Tv%20_thexupertv.com4.34.3.apk"
   });
 });
 
-
-
-const PORT = process.env.PORT;
-
-if (!PORT) {
-  throw new Error("PORT is not defined in environment variables");
-}
+// 4. ESCUCHA SOLO EN LOCAL (NO en Vercel)
+const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
   app.listen(PORT, () => {
@@ -403,5 +364,5 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
   });
 }
 
-// Exportar la app para que pueda ser importada en el archivo de despliegue
+// 5. EXPORTAR PARA VERCEL
 export default app;
