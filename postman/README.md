@@ -68,6 +68,7 @@ Asegúrate de que las siguientes variables estén configuradas:
 Los siguientes endpoints requieren el header `Authorization: Bearer {{authToken}}`:
 - `GET /xuper/users` (solo administradores)
 - `POST /xuper/register/admin` (solo administradores)
+- `GET /api/xuper/download` (usuarios autenticados)
 
 El token se obtiene al hacer login y se guarda automáticamente en la variable `authToken`.
 

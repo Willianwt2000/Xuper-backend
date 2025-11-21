@@ -16,8 +16,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/xuper/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Verifica que el servidor esté funcionando correctamente."
           },
@@ -62,8 +66,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/xuper/verify-email",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "verify-email"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "verify-email"
+              ]
             },
             "description": "Solicita un código de verificación de 6 dígitos que se enviará al correo electrónico proporcionado.\n\n**Flujo:**\n1. El sistema genera un código aleatorio de 6 dígitos\n2. Se hashea con SHA-256 y se guarda en la base de datos\n3. Se envía el código original por email (válido por 15 minutos)\n4. El usuario debe usar este código para completar el registro\n\n**Notas:**\n- El código expira después de 15 minutos\n- Solo se puede solicitar un código por email a la vez\n- Si el email ya está registrado, se devuelve un error"
           },
@@ -110,8 +119,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/xuper/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "register"
+              ]
             },
             "description": "Registra un nuevo usuario en el sistema.\n\n**Requisitos:**\n- Debe haber solicitado previamente un código de verificación\n- El código debe ser válido y no haber expirado (15 minutos)\n- El email no debe estar ya registrado\n\n**Campos requeridos:**\n- `name`: Nombre del usuario (2-50 caracteres)\n- `email`: Correo electrónico válido\n- `password`: Contraseña (mínimo 6 caracteres, sin espacios)\n- `verificationCode`: Código de 6 dígitos recibido por email\n\n**Campo opcional:**\n- `adminCode`: Si se proporciona el código correcto, el usuario se registra como administrador\n\n**Respuesta exitosa:**\n- Devuelve los datos del usuario creado (sin la contraseña)\n- El usuario queda marcado como verificado automáticamente"
           },
@@ -156,8 +170,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/xuper/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "register"
+              ]
             },
             "description": "Registra un nuevo usuario con rol de administrador usando el código especial.\n\n**Nota:** Este endpoint es el mismo que `/xuper/register`, pero incluyendo el campo `adminCode` con el valor correcto configurado en `ADMIN_REGISTRATION_CODE` en el servidor.\n\n**Importante:**\n- Primero debes solicitar un código de verificación para el email\n- Luego usa ese código junto con el `adminCode` para registrarte como administrador"
           },
@@ -214,8 +233,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/xuper/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "login"
+              ]
             },
             "description": "Inicia sesión con un usuario registrado y verificado.\n\n**Requisitos:**\n- El usuario debe estar registrado\n- El email debe estar verificado\n- La contraseña debe ser correcta\n\n**Respuesta exitosa:**\n- Devuelve los datos del usuario\n- Incluye un token JWT válido por 30 días\n- El token se guarda automáticamente en la variable `authToken` para usar en otras peticiones\n\n**Uso del token:**\n- Incluye el token en el header: `Authorization: Bearer {{authToken}}`"
           },
@@ -268,8 +292,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/xuper/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "users"
+              ]
             },
             "description": "Obtiene la lista completa de todos los usuarios registrados en el sistema.\n\n**Requisitos:**\n- Autenticación requerida (token JWT)\n- Rol de administrador requerido\n\n**Respuesta:**\n- Array de objetos usuario (sin incluir contraseñas)\n- Incluye: _id, name, email, role, verified, createdAt, updatedAt"
           },
@@ -324,8 +353,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/xuper/register/admin",
-              "host": ["{{baseUrl}}"],
-              "path": ["xuper", "register", "admin"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "xuper",
+                "register",
+                "admin"
+              ]
             },
             "description": "Crea un nuevo usuario con rol de administrador directamente (sin verificación de email).\n\n**Requisitos:**\n- Autenticación requerida (token JWT)\n- Rol de administrador requerido\n- El email no debe estar ya registrado\n\n**Campos requeridos:**\n- `name`: Nombre del administrador (2-50 caracteres)\n- `email`: Correo electrónico válido\n- `password`: Contraseña (mínimo 6 caracteres, sin espacios)\n\n**Nota:** Este endpoint crea el usuario como verificado automáticamente, sin necesidad de código de verificación."
           },
@@ -333,6 +368,61 @@
         }
       ],
       "description": "Endpoints que requieren autenticación y permisos de administrador."
+    },
+    {
+      "name": "3. Descargas",
+      "item": [
+        {
+          "name": "Obtener URLs de descarga",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains download URLs\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('xptv');",
+                  "    pm.expect(jsonData).to.have.property('xprtv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/xuper/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "xuper",
+                "download"
+              ]
+            },
+            "description": "Obtiene las URLs de descarga de las aplicaciones XPTV y XPR Tv.\n\n**Requisitos:**\n- Autenticación requerida (token JWT)\n\n**Respuesta:**\n- Objeto JSON con las URLs de descarga:\n  - `xptv`: URL de la aplicación XPTV\n  - `xprtv`: URL de la aplicación XPR Tv"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para descarga de recursos."
     }
   ],
   "variable": [
@@ -348,4 +438,3 @@
     }
   ]
 }
-

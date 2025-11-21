@@ -10,6 +10,8 @@ import { User } from "./models/user.js";
 import { sendVerificationCodeEmail } from "./services/emailService.js";
 import jwt from 'jsonwebtoken';
 
+
+
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -53,11 +55,11 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
     }
 
     // Adjuntar información del usuario a la solicitud
-    (req as AuthenticatedRequest).user = { 
-      id: decoded.id, 
-      role: user.role as 'admin' | 'user' 
+    (req as AuthenticatedRequest).user = {
+      id: decoded.id,
+      role: user.role as 'admin' | 'user'
     };
-    
+
     next();
   } catch (error) {
     console.error('Error en el middleware de autenticación:', error);
@@ -117,7 +119,7 @@ app.get('/xuper/users', ensureAuth, ensureAdmin, async (req: AuthenticatedReques
 // Ruta para registrar un nuevo administrador (solo accesible por administradores)
 app.post("/xuper/register/admin", ensureAuth, ensureAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { name, email, password } = req.body;
-  
+
   try {
     const user = await User.create({
       name,
@@ -159,7 +161,7 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
 
     // Verificar si es un intento de registro de administrador
     const isAdminRegistration = adminCode === ADMIN_REGISTRATION_CODE;
-    
+
     if (isAdminRegistration) {
       console.log(`Intento de registro de administrador: ${email}`);
     }
@@ -252,6 +254,69 @@ app.post("/xuper/register", async (req: Request, res: Response): Promise<void> =
   }
 });
 
+//Login user
+app.post("/xuper/login", async (req: Request, res: Response): Promise<void> => {
+  const { email, password } = req.body;
+  try {
+    //validations
+    if (!email || !password) {
+      res
+        .status(400)
+        .json({ message: "Por favor, completa todos los campos obligatorios." });
+      return;
+    }
+    const user = await User.findOne({ email: normalizeEmail(email) });
+
+    if (!user) {
+      res.status(401).json({
+        message: "Correo electrónico o contraseña inválidos.",
+      });
+      return;
+    }
+
+    if (!user.verified) {
+      res.status(403).json({
+        message:
+          "Tu correo electrónico no ha sido verificado. Completa la verificación para iniciar sesión.",
+      });
+      return;
+    }
+
+    if (await user.matchPassword(password)) {
+      // Generar token JWT
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET || 'your_jwt_secret',
+        { expiresIn: '30d' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict', // Protege contra ataques CSRF
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días en milisegundos (igual que tu token)
+      });
+
+      res.status(200).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: token
+      });
+
+    } else {
+      res.status(401).json({ message: "Correo electrónico o contraseña inválidos." });
+    }
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error en registro:", error.message);
+    }
+    console.error("Error en login:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
 //verify user email
 app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body;
@@ -305,63 +370,25 @@ app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<voi
     }
     console.error("Error al verificar el correo electrónico:", error);
     res.status(500).json({ message: "Error interno del servidor." });
-  } 
-});
-
-//Login user
-app.post("/xuper/login", async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-  try {
-    //validations
-    if (!email || !password) {
-      res
-        .status(400)
-        .json({ message: "Por favor, completa todos los campos obligatorios." });
-      return;
-    } 
-    const user = await User.findOne({ email: normalizeEmail(email) });
-
-    if (!user) {
-      res.status(401).json({
-        message: "Correo electrónico o contraseña inválidos.",
-      });
-      return;
-    }
-
-    if (!user.verified) {
-      res.status(403).json({
-        message:
-          "Tu correo electrónico no ha sido verificado. Completa la verificación para iniciar sesión.",
-      });
-      return;
-    }
-
-    if (await user.matchPassword(password)) {
-      // Generar token JWT
-      const token = jwt.sign(
-        { id: user._id },
-        process.env.JWT_SECRET || 'your_jwt_secret',
-        { expiresIn: '30d' }
-      );
-
-      res.status(200).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: token
-      });
-    } else {
-      res.status(401).json({ message: "Correo electrónico o contraseña inválidos." });
-    }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error en registro:", error.message);
-    }
-    console.error("Error en login:", error);
-    res.status(500).json({ message: "Error interno del servidor." });
   }
 });
+
+//Download endpoint
+app.get("/api/xuper/download", ensureAuth, (req: AuthenticatedRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ message: "No autorizado. Debe iniciar sesión." });
+    return;
+  }
+
+  console.log(`Usuario (${req.user.id}) solicitando URLs de descarga.`);
+
+  res.status(200).json({
+    xptv: "https://files.thexupertv.com/XPTV-6.5.0-thexupertv.com.apk",
+    xprtv: "https://files.thexupertv.com/XPR_Tv%20_thexupertv.com4.34.3.apk"
+  });
+});
+
+
 
 const PORT = process.env.PORT;
 
