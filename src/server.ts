@@ -6,14 +6,14 @@ import crypto from "crypto";
 import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
-import "./config/firebase-config.js"; // Importar después de dotenv
+import "./config/firebase-config.js";
 import { connectDB } from "./config/db.js";
 import EmailVerification from "./models/emailVerification.js";
 import { User } from "./models/user.js";
 import { sendVerificationCodeEmail } from "./services/emailService.js";
 import jwt from 'jsonwebtoken';
 
-// 2. CONEXIÓN A DB (Para Cold Start en Vercel)
+
 connectDB();
 
 interface AuthenticatedRequest extends Request {
@@ -43,10 +43,17 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
       return;
     }
 
-    const secret = process.env.JWT_SECRET || 'your_jwt_secret';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('CRÍTICO: JWT_SECRET no está definido');
+      res.status(500).json({ message: 'Error de configuración del servidor' });
+      return;
+    }
+
     const decoded = jwt.verify(token, secret) as JwtPayload;
 
-    if (!decoded.id) {
+    // Validación adicional del payload
+    if (!decoded.id || typeof decoded.id !== 'string') {
       res.status(401).json({ message: 'Token inválido' });
       return;
     }
@@ -64,8 +71,17 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
 
     next();
   } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ message: 'Token inválido' });
+      return;
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ message: 'Token expirado' });
+      return;
+    }
+    
     console.error('Error en el middleware de autenticación:', error);
-    res.status(401).json({ message: 'Token inválido o expirado' });
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 
@@ -343,7 +359,7 @@ app.post("/xuper/verify-email", async (req: Request, res: Response): Promise<voi
   }
 });
 
-app.get("/api/xuper/download", ensureAuth, (req: AuthenticatedRequest, res: Response): void => {
+app.get("/xuper/download", ensureAuth, (req: AuthenticatedRequest, res: Response): void => {
   if (!req.user) {
     res.status(401).json({ message: "No autorizado. Debe iniciar sesión." });
     return;
@@ -364,5 +380,5 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
   });
 }
 
-// 5. EXPORTAR PARA VERCEL
+
 export default app;
