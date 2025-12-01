@@ -1,0 +1,8 @@
+GET http://localhost:6000/xuper
+
+
+###
+
+POST http://localhost:6000/xuper/login
+Content-Type: application/json
+

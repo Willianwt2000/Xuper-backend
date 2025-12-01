@@ -372,11 +372,11 @@ app.get("/xuper/download", ensureAuth, (req: AuthenticatedRequest, res: Response
 });
 
 // 4. ESCUCHA SOLO EN LOCAL (NO en Vercel)
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 if (!process.env.VERCEL_ENV) {
   app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`); 
+    console.log(`Server is listening on port http://localhost:${PORT}`); 
   });
 }
 
