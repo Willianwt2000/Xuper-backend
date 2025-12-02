@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-// 1. CARGA DE VARIABLES (CRUCIAL: Debe ser lo primero)
 dotenv.config();
 
 import crypto from "crypto";
