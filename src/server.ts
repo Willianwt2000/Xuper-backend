@@ -27,7 +27,6 @@ interface JwtPayload extends jwt.JwtPayload {
   role?: 'admin' | 'user';
 };
 
-// Middleware para verificar autenticación
 const ensureAuth = async (req: Request, res: Response, next: () => void): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -51,7 +50,6 @@ const ensureAuth = async (req: Request, res: Response, next: () => void): Promis
 
     const decoded = jwt.verify(token, secret) as JwtPayload;
 
-    // Validación adicional del payload
     if (!decoded.id || typeof decoded.id !== 'string') {
       res.status(401).json({ message: 'Token inválido' });
       return;
