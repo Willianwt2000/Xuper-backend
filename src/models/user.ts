@@ -85,6 +85,8 @@ userSchema.methods.matchPassword = async function (
   return bcrypt.compare(enteredPassword, this.password);
 };
 
+//fixing
+
 const User: Model<IUser> = mongoose.models.User ?? mongoose.model<IUser>("User", userSchema);
 
 User.schema.methods.isAdmin = function (): boolean {
